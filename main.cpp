@@ -21,7 +21,7 @@ class Graph
     // Internal methods.
     ifstream& _readEdges(ifstream&);
     vector<int> _bfs(const int&);
-    void _dfs(const int&, const int&, vector<int>&, vector<int>&);
+    void _dfs(const int&, const int&, vector<int>&, stack<int>&);
     void _addEdge(const Edge&);
     void _resize(const int&, const int&, const bool&, const vector<Edge>& edges);
     void _resize(const int&, const int&, const bool&);
@@ -34,6 +34,7 @@ class Graph
     // Functions and methods to solve the requirements
     vector<int> solveBFS(ifstream&);
     int solveDFS(ifstream&);
+    vector<int> solveTopo(ifstream&);
 };
 
 /// Constructors
@@ -150,7 +151,7 @@ vector<int> Graph::_bfs(const int& startV)
     return distances;
 }
 
-void Graph::_dfs(const int& start, const int& marker, vector<int>& mark, vector<int>& order_list)
+void Graph::_dfs(const int& start, const int& marker, vector<int>& mark, stack<int>& topo_sort)
 {
     /// Solves DFS recursively
     // start = start vertex
@@ -158,13 +159,14 @@ void Graph::_dfs(const int& start, const int& marker, vector<int>& mark, vector<
     // mark = vector of _nr_vertex + 1 elements; retains the marker of each vertex
     // order_list = vector that determines the longest path in the graph starting with start
 
-    order_list.push_back(start);
     mark[start] = marker; // visited the current vertex
     for (auto &neighbour: _adjacency[start]) // passing through their neighbors
     {
         if (mark[neighbour] == -1) // haven't marked it already
-            _dfs(neighbour, marker, mark, order_list); // continue with the neighbor
+            _dfs(neighbour, marker, mark, topo_sort); // continue with the neighbor
     }
+
+    topo_sort.push(start);
 }
 
 
@@ -195,7 +197,7 @@ int Graph::solveDFS(ifstream& in)
     in.close();
     int result = 0;
     vector<int> components(_nr_vertex + 1, -1);
-    vector<int> aux; // not needed in the solving this
+    stack<int> aux; // not needed in the solving this
 
     for (int i = 1; i <= _nr_vertex; ++i)
     {
@@ -207,6 +209,37 @@ int Graph::solveDFS(ifstream& in)
     }
     return result;
 }
+
+vector<int> Graph::solveTopo(ifstream& in)
+{
+     /// Solving BFS from infoarena
+     /// Using DFS for the non-visited vertexes in order to determine the number of components by
+     /// marking them with the same number
+    // n = _nr_vertex    m = _nr_edges
+
+    _readEdges(in);
+    in.close();
+    vector<int> components(_nr_vertex + 1, -1);
+    vector<int> sol;
+    stack<int> aux;
+
+    for (int i = 1; i <= _nr_vertex; ++i)
+    {
+        if (components[i] == -1) // A new component
+        {
+            _dfs(i, NULL, components, aux); // mark the other vertex in the component
+        }
+    }
+
+    while (!aux.empty())
+    {
+        sol.push_back(aux.top());
+        aux.pop();
+    }
+
+    return sol;
+}
+
 
 
 void infoarenaBFS()
@@ -236,8 +269,21 @@ void infoarenaDFS()
     out.close();
 }
 
+void infoarenaSortareTopologica()
+{
+    ifstream in("sortaret.in");
+    ofstream out("sortaret.out");
+    int n, m;
+    in >> n >> m;
+    Graph g(n,m,1);
+    vector<int> sol = g.solveTopo(in);
+    for (unsigned int i = 0; i < sol.size(); ++i)
+        out << sol[i] << " ";
+    out.close();
+}
+
 int main()
 {
-    infoarenaBFS();
+    infoarenaSortareTopologica
     return 0;
 }
