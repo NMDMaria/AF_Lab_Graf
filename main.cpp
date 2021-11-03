@@ -23,7 +23,7 @@ class Graph
     vector<int> _popEdges(stack<Edge>& , const Edge&);
     vector<int> _bfs(const int&);
     void _dfs(const int&, const int&, vector<int>&, stack<int>&);
-    void _leveled_dfs(const int&, vector<int>& , vector<int>&, vector<int>& , stack<Edge>&, vector<vector<int>>&);
+    void _leveled_dfs(const int&, vector<int>& , vector<int>&, vector<int>& , stack<Edge>&, vector<vector<int>>&, vector<vector<int>>&);
     void _addEdge(const Edge&);
     void _resize(const int&, const int&, const bool&, const vector<Edge>& edges);
     void _resize(const int&, const int&, const bool&);
@@ -38,6 +38,7 @@ class Graph
     int solveDFS(ifstream&);
     vector<int> solveTopo(ifstream&);
     pair<int,vector<vector<int>>> solveBiconex(ifstream&);
+    vector<vector<int>> criticalConnections(ifstream&);
 };
 
 /// Constructors
@@ -189,7 +190,7 @@ vector<int> Graph::_popEdges(stack<Edge>& st, const Edge& last_edg)
 }
 
 
-void Graph::_leveled_dfs(const int& start, vector<int>& parent, vector<int>& level, vector<int>&  return_level, stack<Edge>& expl_edges, vector<vector<int>>& biconex_comps)
+void Graph::_leveled_dfs(const int& start, vector<int>& parent, vector<int>& level, vector<int>&  return_level, stack<Edge>& expl_edges, vector<vector<int>>& biconex_comps, vector<vector<int>>& critical_edges)
 {
     if ( parent.size() != _nr_vertex + 1 && level.size() != _nr_vertex + 1 &&  return_level.size() != _nr_vertex + 1 )
     {
@@ -217,9 +218,14 @@ void Graph::_leveled_dfs(const int& start, vector<int>& parent, vector<int>& lev
             level[child] = level[start] + 1;
             return_level[child] = level[child];
 
-            _leveled_dfs(child, parent, level, return_level, expl_edges, biconex_comps);
+            _leveled_dfs(child, parent, level, return_level, expl_edges, biconex_comps, critical_edges);
 
             return_level[start] = min(return_level[start], return_level[child]);
+
+            if (return_level[child] > level[start])
+            {
+                critical_edges.push_back(vector<int>{start,child});
+            }
 
             if (parent[start] == 0 && nr_children >= 2)
             {
@@ -318,8 +324,9 @@ pair<int,vector<vector<int>>> Graph::solveBiconex(ifstream &in)
     vector<int> level;
     vector<int> rtr_lvl;
     stack<Edge> st;
+    vector<vector<int>> crt_edg;
 
-    _leveled_dfs(1, parent, level, rtr_lvl, st, sol);
+    _leveled_dfs(1, parent, level, rtr_lvl, st, sol, crt_edg);
 
     vector<int> last_cmp;
     int x,y;
@@ -336,6 +343,21 @@ pair<int,vector<vector<int>>> Graph::solveBiconex(ifstream &in)
     return pair<int, vector<vector<int>>> (sol.size(), sol);
 }
 
+
+vector<vector<int>> Graph::criticalConnections(ifstream &in)
+{
+    _readEdges(in);
+    in.close();
+    vector<vector<int>> sol;
+    vector<int> parent;
+    vector<int> level;
+    vector<int> rtr_lvl;
+    stack<Edge> st;
+    vector<vector<int>> crt_edg;
+
+    _leveled_dfs(1, parent, level, rtr_lvl, st, sol, crt_edg);
+    return crt_edg;
+}
 
 void infoarenaBFS()
 {
@@ -394,6 +416,26 @@ void infoarenaBiconex()
         for (int e_idx = 0; e_idx < sol.second[i].size(); ++e_idx)
         {
             out << sol.second[i][e_idx] << " ";
+        }
+        out << "\n";
+    }
+}
+
+
+void leetCriticalConnections()
+{
+     ifstream in("criticalconnections.in");
+    ofstream out("criticalconnections.out");
+    int n, m;
+    in >> n >> m;
+    Graph g(n,m,0);
+    vector<vector<int>> crt_edg = g.criticalConnections(in);
+
+    for (int i = 0; i < crt_edg.size(); ++i)
+    {
+        for (int e_idx = 0; e_idx < crt_edg[i].size(); ++e_idx)
+        {
+            out << crt_edg[i][e_idx] << " ";
         }
         out << "\n";
     }
