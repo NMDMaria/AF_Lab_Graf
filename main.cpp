@@ -20,8 +20,10 @@ class Graph
 
     // Internal methods.
     ifstream& _readEdges(ifstream&);
+    vector<int> _popEdges(stack<Edge>& , const Edge&);
     vector<int> _bfs(const int&);
     void _dfs(const int&, const int&, vector<int>&, stack<int>&);
+    void _leveled_dfs(const int&, vector<int>& , vector<int>&, vector<int>& , stack<Edge>&, vector<vector<int>>&);
     void _addEdge(const Edge&);
     void _resize(const int&, const int&, const bool&, const vector<Edge>& edges);
     void _resize(const int&, const int&, const bool&);
@@ -35,6 +37,7 @@ class Graph
     vector<int> solveBFS(ifstream&);
     int solveDFS(ifstream&);
     vector<int> solveTopo(ifstream&);
+    pair<int,vector<vector<int>>> solveBiconex(ifstream&);
 };
 
 /// Constructors
@@ -151,7 +154,7 @@ vector<int> Graph::_bfs(const int& startV)
     return distances;
 }
 
-void Graph::_dfs(const int& start, const int& marker, vector<int>& mark, stack<int>& topo_sort)
+void Graph::_dfs(const int& start, const int& marker, vector<int>& mark, stack<int>& exit_time)
 {
     /// Solves DFS recursively
     // start = start vertex
@@ -163,10 +166,76 @@ void Graph::_dfs(const int& start, const int& marker, vector<int>& mark, stack<i
     for (auto &neighbour: _adjacency[start]) // passing through their neighbors
     {
         if (mark[neighbour] == -1) // haven't marked it already
-            _dfs(neighbour, marker, mark, topo_sort); // continue with the neighbor
+            _dfs(neighbour, marker, mark, exit_time); // continue with the neighbor
     }
 
-    topo_sort.push(start);
+    exit_time.push(start);
+}
+
+vector<int> Graph::_popEdges(stack<Edge>& st, const Edge& last_edg)
+{
+    vector<int> sol;
+    int x, y;
+    do
+    {
+        x = st.top().from;
+        y = st.top().where;
+        st.pop();
+        sol.push_back(x);
+        sol.push_back(y);
+    }while (x != last_edg.from && y !=last_edg.where);
+
+    return sol;
+}
+
+
+void Graph::_leveled_dfs(const int& start, vector<int>& parent, vector<int>& level, vector<int>&  return_level, stack<Edge>& expl_edges, vector<vector<int>>& biconex_comps)
+{
+    if ( parent.size() != _nr_vertex + 1 && level.size() != _nr_vertex + 1 &&  return_level.size() != _nr_vertex + 1 )
+    {
+        // first iteration
+        parent.resize(_nr_vertex + 1);
+        parent.assign(_nr_vertex + 1, -1);
+        level.resize(_nr_vertex + 1);
+        return_level.resize(_nr_vertex + 1);
+        level.assign(_nr_vertex + 1, -1);
+        return_level.assign(_nr_vertex + 1, -1);
+        parent[start] = 0;
+        level[start] = 0;
+        return_level[start] = 0;
+    }
+    int nr_children = 0;
+
+    for (auto &child: _adjacency[start])
+    {
+        nr_children ++;
+
+        if (parent[child] == -1) // not visited
+        {
+            expl_edges.push({start, child});
+            parent[child] = start;
+            level[child] = level[start] + 1;
+            return_level[child] = level[child];
+
+            _leveled_dfs(child, parent, level, return_level, expl_edges, biconex_comps);
+
+            return_level[start] = min(return_level[start], return_level[child]);
+
+            if (parent[start] == 0 && nr_children >= 2)
+            {
+                vector<int> new_comp = _popEdges(expl_edges, {start,child});
+                biconex_comps.push_back(new_comp);
+            }
+
+            if (parent[start] != 0 && return_level[child] >= level[start])
+            {
+                vector<int> new_comp = _popEdges(expl_edges, {start,child});
+                biconex_comps.push_back(new_comp);
+            }
+        }
+
+        else if (child != parent[start]) return_level[start] = min(return_level[start], level[child]);
+    }
 }
 
 
@@ -240,6 +309,32 @@ vector<int> Graph::solveTopo(ifstream& in)
     return sol;
 }
 
+pair<int,vector<vector<int>>> Graph::solveBiconex(ifstream &in)
+{
+     _readEdges(in);
+    in.close();
+    vector<vector<int>> sol;
+    vector<int> parent;
+    vector<int> level;
+    vector<int> rtr_lvl;
+    stack<Edge> st;
+
+    _leveled_dfs(1, parent, level, rtr_lvl, st, sol);
+
+    vector<int> last_cmp;
+    int x,y;
+    while (!st.empty())
+    {
+        x = st.top().from;
+        y = st.top().where;
+        st.pop();
+        last_cmp.push_back(x);
+        last_cmp.push_back(y);
+    }
+    sol.push_back(last_cmp);
+
+    return pair<int, vector<vector<int>>> (sol.size(), sol);
+}
 
 
 void infoarenaBFS()
@@ -282,8 +377,30 @@ void infoarenaSortareTopologica()
     out.close();
 }
 
+void infoarenaBiconex()
+{
+     ifstream in("biconex.in");
+    ofstream out("biconex.out");
+    int n, m;
+    in >> n >> m;
+    Graph g(n,m,0);
+    pair<int, vector<vector<int>>> sol = g.solveBiconex(in);
+    out << sol.first << "\n";
+
+    for (int i = 0; i < sol.first; ++i)
+    {
+        sort(sol.second[i].begin(), sol.second[i].end());
+        sol.second[i].erase(unique(sol.second[i].begin(), sol.second[i].end()), sol.second[i].end());
+        for (int e_idx = 0; e_idx < sol.second[i].size(); ++e_idx)
+        {
+            out << sol.second[i][e_idx] << " ";
+        }
+        out << "\n";
+    }
+}
+
 int main()
 {
-    infoarenaSortareTopologica
+    infoarenaBiconex();
     return 0;
 }
