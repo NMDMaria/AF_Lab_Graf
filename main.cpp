@@ -10,6 +10,11 @@ struct Edge
     int from, where;
 };
 
+bool pairsortsnddesc(const pair<int,int>& i, const pair<int,int>& j)
+{
+    return i.second > j.second;
+}
+
 class Graph
 {
  private:
@@ -21,12 +26,15 @@ class Graph
     // Internal methods.
     ifstream& _readEdges(ifstream&);
     vector<int> _popEdges(stack<Edge>& , const Edge&);
+    void _popVertex(const int&, stack<int>&, int&, vector<vector<int>>&, vector<bool>&);
     vector<int> _bfs(const int&);
     void _dfs(const int&, const int&, vector<int>&, stack<int>&);
     void _leveled_dfs(const int&, vector<int>& , vector<int>&, vector<int>& , stack<Edge>&, vector<vector<int>>&, vector<vector<int>>&);
+    void _tarjan(const int&, int&, vector<int>&, vector<int>&, stack<int>&, vector<bool>& , int&, vector<vector<int>>&);
     void _addEdge(const Edge&);
     void _resize(const int&, const int&, const bool&, const vector<Edge>& edges);
     void _resize(const int&, const int&, const bool&);
+    bool _sortHH(pair<int,int> , pair<int,int>);
 
  public:
     // Constructors
@@ -39,6 +47,8 @@ class Graph
     vector<int> solveTopo(ifstream&);
     pair<int,vector<vector<int>>> solveBiconex(ifstream&);
     vector<vector<int>> criticalConnections(ifstream&);
+    pair<int, vector<vector<int>>> solveCTC(ifstream &);
+    void HavelHakimi(ifstream &);
 };
 
 /// Constructors
@@ -189,6 +199,20 @@ vector<int> Graph::_popEdges(stack<Edge>& st, const Edge& last_edg)
     return sol;
 }
 
+void Graph::_popVertex(const int& start, stack<int>& st, int& sol_nr, vector<vector<int>>& sol, vector<bool> &in)
+{
+    sol_nr++;
+    int aux;
+    vector<int> aux2;
+    do
+    {
+        aux = st.top();
+        in[aux] = 0;
+        st.pop();
+        aux2.push_back(aux);
+    }while (aux != start);
+    sol.push_back(aux2);
+}
 
 void Graph::_leveled_dfs(const int& start, vector<int>& parent, vector<int>& level, vector<int>&  return_level, stack<Edge>& expl_edges, vector<vector<int>>& biconex_comps, vector<vector<int>>& critical_edges)
 {
@@ -244,6 +268,30 @@ void Graph::_leveled_dfs(const int& start, vector<int>& parent, vector<int>& lev
     }
 }
 
+
+void Graph::_tarjan(const int& start, int& time, vector<int>& in_time, vector<int>& low_in_time, stack<int>& connection, vector<bool>& in_connection, int& nr_ctc, vector<vector<int>>& strong_connected)
+{
+    time++;
+    in_time[start] = time;
+    low_in_time[start] = time;
+    in_connection[start] = 1;
+    connection.push(start);
+
+    for (auto &child: _adjacency[start])
+    {
+        if (in_time[child] == -1)
+        {
+            _tarjan(child, time,  in_time, low_in_time, connection, in_connection, nr_ctc, strong_connected);
+            low_in_time[start] = min(low_in_time[start], low_in_time[child]);
+        }
+        else if(in_connection[child]) low_in_time[start] = min(low_in_time[start], in_time[child]);
+    }
+
+    if (low_in_time[start] == in_time[start])
+    {
+        _popVertex(start, connection, nr_ctc, strong_connected, in_connection);
+    }
+}
 
 /// Procedures for solving the requirements
 vector<int> Graph::solveBFS(ifstream &in)
@@ -343,7 +391,6 @@ pair<int,vector<vector<int>>> Graph::solveBiconex(ifstream &in)
     return pair<int, vector<vector<int>>> (sol.size(), sol);
 }
 
-
 vector<vector<int>> Graph::criticalConnections(ifstream &in)
 {
     _readEdges(in);
@@ -355,9 +402,92 @@ vector<vector<int>> Graph::criticalConnections(ifstream &in)
     stack<Edge> st;
     vector<vector<int>> crt_edg;
 
-    _leveled_dfs(1, parent, level, rtr_lvl, st, sol, crt_edg);
+    _leveled_dfs(0, parent, level, rtr_lvl, st, sol, crt_edg);
     return crt_edg;
 }
+
+pair <int, vector<vector<int>>> Graph::solveCTC(ifstream &in)
+{
+     _readEdges(in);
+    in.close();
+    vector<int> in_time;
+    vector<int> low_in_time;
+    stack<int> connection;
+    vector<bool> in_connection;
+    in_connection.resize(_nr_vertex + 1);
+    in_connection.assign(_nr_vertex + 1, 0);
+    int time;
+    in_time.resize(_nr_vertex + 1);
+    in_time.assign(_nr_vertex + 1, -1);
+    low_in_time.resize(_nr_vertex + 1);
+    low_in_time.assign(_nr_vertex + 1, -1);
+    time = 0;
+    int sol_nr = 0;
+    vector<vector<int>> sol;
+
+    for (int i = 1; i <= _nr_vertex; ++i)
+    {
+        if (in_time[i] == -1)
+            _tarjan(i, time, in_time, low_in_time, connection, in_connection, sol_nr, sol);
+    }
+
+    return make_pair(sol_nr, sol);
+}
+
+void Graph::HavelHakimi(ifstream &in)
+{
+    int aux, n, m = 0;
+    vector<pair<int,int>> degrees;
+    in >> n;
+    for (int i = 1; i <= n; ++i)
+    {
+        in >> aux;
+        m += aux;
+        degrees.push_back(make_pair(i, aux));
+    }
+    m /= 2;
+    _resize(n, m, 0);
+    bool change = 0;
+
+    do
+    {
+        change = 0;
+        sort(degrees.begin(), degrees.end(), pairsortsnddesc); // logN
+        int m_d = degrees[0].second;
+        if (m_d > n ) break;
+        while (m_d != 0) // max M
+        {
+            change = 0;
+            for (int k = 1; k < n; ++k)// N
+            {
+                if (degrees[k].second != 0)
+                    if (_adjacency[degrees[0].first].size() == 0 || find(_adjacency[degrees[0].first].begin(), _adjacency[degrees[0].first].end(), degrees[k].first ) == _adjacency[degrees[0].first].end())
+                   {
+                        change = 1;
+                        _addEdge({degrees[0].first, degrees[k].first});
+                        degrees[0].second--;
+                        degrees[k].second--;
+                        m--;
+                        m_d --;
+                   }
+            }
+            if (change == 0) break;
+        }
+    }while (m != 0 && change == 1); // M
+
+    if (m!=0) cout << "Not";
+    else
+    for (int i = 1; i <= n; ++i)
+    {
+        cout << i <<": ";
+        for (auto &e:_adjacency[i])
+        {
+            cout << e << " ";
+        }
+        cout<< endl;
+    }
+}
+
 
 void infoarenaBFS()
 {
@@ -421,7 +551,6 @@ void infoarenaBiconex()
     }
 }
 
-
 void leetCriticalConnections()
 {
      ifstream in("criticalconnections.in");
@@ -441,8 +570,34 @@ void leetCriticalConnections()
     }
 }
 
+void infoarenaCTC()
+{
+    ifstream in("ctc.in");
+    int n, m;
+    in >> n >> m;
+    Graph g(n,m,1);
+    pair<int, vector<vector<int>>> solution = g.solveCTC(in);
+    ofstream out("ctc.out");
+    out << solution.first << endl;
+    for (int i = 0; i < solution.first; ++i)
+    {
+        for (auto &it: solution.second[i])
+            out << it << " ";
+        out << "\n";
+    }
+    out.close();
+
+}
+
+void solveHH()
+{
+    ifstream in("havelhakimi.in");
+    Graph g(0,0, 0);
+    g.HavelHakimi(in);
+}
+
 int main()
 {
-    infoarenaBiconex();
+
     return 0;
 }
