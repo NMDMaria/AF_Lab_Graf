@@ -1,5 +1,5 @@
 ### Proiect 1. Laborator Algoritmi Fundamentali.
-###### Negrut Maria-Daniela 2331
+###### Negrut Maria-Daniela 233 sg. 1
 *** 
 - [BFS](https://infoarena.ro/problema/bfs) -- [100p](https://infoarena.ro/job_detail/2789050?action=view-source)
 - [DFS(componente conexe)](https://infoarena.ro/problema/dfs) -- [100p](https://infoarena.ro/job_detail/2789052?action=view-source)
