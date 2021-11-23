@@ -5,7 +5,7 @@ using namespace std;
 struct Edge
 {
     int from, where;
-    int cost;
+    int weight;
 };
 
 struct Weighted_edge
@@ -22,6 +22,12 @@ bool pairsortsnddesc(const pair<int,int>& i, const pair<int,int>& j)
     return i.second > j.second;
 }
 
+ struct Forest
+{
+    int parent, size;
+};
+
+
 class Graph
 {
  private:
@@ -29,56 +35,43 @@ class Graph
     int _nr_edge;
     bool _oriented;
     bool _weighted;
-
     vector<vector<Weighted_edge>> _adjacency;
-    // Internal methods.
-    ifstream& _readEdges(ifstream&);
+
+    // Internal
     vector<int> _popEdges(stack<Edge>& , const Edge&);
     void _popVertex(const int&, stack<int>&, int&, vector<vector<int>>&, vector<bool>&);
     vector<int> _bfs(const int&);
     void _dfs(const int&, const int&, vector<int>&, stack<int>&);
     void _leveled_dfs(const int&, vector<int>& , vector<int>&, vector<int>& , stack<Edge>&, vector<vector<int>>&, vector<vector<int>>&);
     void _tarjan(const int&, int&, vector<int>&, vector<int>&, stack<int>&, vector<bool>& , int&, vector<vector<int>>&);
-    void _HavelHakimi(const int&, const int&, vector<pair<int,int>>& , bool&);
+    bool _HavelHakimi(const int&, const int&, vector<pair<int,int>>& );
     void _addEdge(const Edge&);
     void _resize(const int&, const int&, const bool&, const bool&);
     pair<int,vector<Edge>> _Prim();
+    vector<int> _Dijkstra(const int&);
+    vector<int> _BellmanFord(const int&);
+    vector<Forest> _makeForest(const int&);
+    int _findParent(int, vector<Forest>&);
+    void _unionForest(int , int , vector<Forest>& );
+    bool _checkForest(int, int, vector<Forest>&);
 
  public:
-    // Constructors
-    Graph(const int&, const int&, const bool&, const bool&, const vector<Edge>&);
     Graph(const int& n = 0, const int& m = 0, const bool& o = 0, const bool& w = 0);
+    ifstream& readEdges(ifstream&);
 
-    // Functions and methods to solve the requirements
-    vector<int> solveBFS(ifstream&);
-    int solveDFS(ifstream&);
-    vector<int> solveTopo(ifstream&);
-    pair<int,vector<vector<int>>> solveBiconex(ifstream&);
-    vector<vector<int>> criticalConnections(ifstream&);
-    pair<int, vector<vector<int>>> solveCTC(ifstream &);
-    void HavelHakimi(ifstream &);
-    void solveAPM(ifstream &);
+
+    vector<int> solveBFS(const int&);
+    int solveDFS();
+    vector<int> solveTopo();
+    pair<int,vector<vector<int>>> solveBiconex();
+    vector<vector<int>> criticalConnections();
+    pair<int, vector<vector<int>>> solveCTC();
+    void HavelHakimi(ifstream&);
+    tuple<int, int, vector<Edge>> solveAPM();
+    vector<int> solveDijkstra();
+    void solveBellmanFord();
+    vector<bool> solveDisjunct(int, int, ifstream &);
 };
-
-/// Constructors
-Graph::Graph(const int& n, const int& m, const bool& o, const bool& w, const vector<Edge>& edges)
-{
-
-
-   _nr_vertex= n;
-   _nr_edge = m;
-   _oriented = o;
-   _weighted = w;
-   if (n != 0)
-   {
-       _adjacency.resize(n + 1);
-       for (auto &e: edges)
-       {
-           _adjacency[e.from].push_back({e.where, e.cost});
-           if (!_oriented) _adjacency[e.where].push_back({e.from, e.cost});
-       }
-   }
-}
 
 Graph::Graph(const int& n, const int& m, const bool& o, const bool& w)
 {
@@ -88,6 +81,23 @@ Graph::Graph(const int& n, const int& m, const bool& o, const bool& w)
    _oriented = o;
    _weighted = w;
    if (n != 0) _adjacency.resize(n + 1);
+}
+
+ifstream& Graph::readEdges(ifstream& in)
+{
+    /// Reads the edges of the graph
+    int x, y, c;
+    for(int i = 0; i < _nr_edge; ++i)
+    {
+        in >> x >> y;
+        if (_weighted == 1)
+        {
+            in >> c;
+            _addEdge({x, y, c});
+        }
+        else _addEdge({x, y, 0});
+    }
+    return in;
 }
 
 /// Definitions of internal methods
@@ -105,27 +115,57 @@ void Graph::_resize(const int& new_n, const int& new_m, const bool& new_o, const
 void Graph::_addEdge(const Edge& e)
 {
     /// Add an edge to the graph
-    _adjacency[e.from].push_back({e.where, e.cost});
-    if (!_oriented) _adjacency[e.where].push_back({e.from, e.cost});
+    _adjacency[e.from].push_back({e.where, e.weight});
+    if (!_oriented) _adjacency[e.where].push_back({e.from, e.weight});
 }
 
-ifstream& Graph::_readEdges(ifstream& in)
+vector<Forest> Graph::_makeForest(const int& N)
 {
-    /// Reads the edges of the graph
-    // in = pointer of the location of the edges in the open for reading file
-
-    int x, y, c;
-    for(int i = 0; i < _nr_edge; ++i)
+    vector<Forest> F(N + 1);
+    for (int i = 1; i <= N; ++i)
     {
-        in >> x >> y;
-        if (_weighted)
-        {
-            in >> c;
-            _addEdge({x, y, c}); // Creates pair of type Edge
-        }
-        else _addEdge({x, y, 0});
+        F[i].parent = i;
+        F[i].size = 1;
     }
-    return in;
+
+    return F;
+}
+
+int Graph::_findParent(int x, vector<Forest>& F)
+{
+    while (F[x].parent != x)
+    {
+        F[x].parent = F[ F[x].parent].parent;
+        F[x].size = F[F[x].parent].size;
+        x = F[x].parent;
+    }
+    return x;
+}
+
+void Graph::_unionForest(int x, int y, vector<Forest>& F)
+{
+    x = _findParent(x, F);
+    y = _findParent(y, F);
+
+    if (x == y) return;
+
+    if (F[x].size  > F[y].size)
+    {
+        F[y].parent = x;
+        F[x].size += F[y].size;
+    }
+    else
+    {
+        F[x].parent = y;
+        F[x].size += F[x].size;
+    }
+}
+
+bool Graph::_checkForest(int x, int y, vector<Forest>& F)
+{
+    if (_findParent(x, F) == _findParent(y, F))
+        return 1;
+    return 0;
 }
 
 vector<int> Graph::_bfs(const int& startV)
@@ -304,12 +344,12 @@ void Graph::_tarjan(const int& start, int& time, vector<int>& in_time, vector<in
     }
 }
 
-void Graph::_HavelHakimi(const int& n, const int& nr_d, vector<pair<int,int>>& degrees , bool& breakflag)
+bool Graph::_HavelHakimi(const int& n, const int& nr_d, vector<pair<int,int>>& degrees)
 {
     /// Given a vector of pairs (Vertex, degree) determine if it is a valid graph
     int  m = nr_d/2; // number of edges is sum of degrees/2
     _resize(n, m, 0, 0);
-    breakflag = 0;
+
     vector<vector<bool>> matrix_adj; // access to finding if a edge exists in O(1). but memory + O(n^2)
     matrix_adj.resize(n + 1);
     for (int i = 1; i <= n; ++i)
@@ -329,30 +369,30 @@ void Graph::_HavelHakimi(const int& n, const int& nr_d, vector<pair<int,int>>& d
                 matrix_adj[max_dg.first][degrees[k].first] = matrix_adj[degrees[k].first][max_dg.first] = 1;
                 degrees[k].second--;
                 max_dg.second--;
-                if (degrees[k].second < 0) { breakflag = 1; break;}
+                if (degrees[k].second < 0) return 0;
                 m--;
 
-                _addEdge({max_dg.first, degrees[k].first});
+                _addEdge({max_dg.first, degrees[k].first, 0});
             }
         }
-        if (max_dg.second != 0) {breakflag = 1; break;}
+        if (max_dg.second != 0) return 0;
     }
 
-    if (m!=0) breakflag = 1; // Couldn't add the number of desired edges so not a valid graph
+    if (m!=0) return 0; // Couldn't add the number of desired edges so not a valid graph
+    return 1;
 }
-
 pair<int, vector<Edge>> Graph::_Prim()
 {
     priority_queue<Weighted_edge, vector<Weighted_edge>, Weighted_edge> heap;
-    vector<int> cost(_nr_vertex + 1, INT_MAX);
+    vector<int> weight(_nr_vertex + 1, INT_MAX);
     vector<int> parent(_nr_vertex + 1, -1);
     vector<bool> in_APM(_nr_vertex + 1, 0);
     vector<Edge> edges;
 
-    int node, total_cost = 0;
-    cost[1] = 0;
+    int node, total_weight = 0;
+    weight[1] = 0;
 
-    heap.push({1, cost[1]});
+    heap.push({1, weight[1]});
 
     while (!heap.empty())
     {
@@ -362,42 +402,70 @@ pair<int, vector<Edge>> Graph::_Prim()
         if (!in_APM[node])
         {
             in_APM[node] = 1;
-            total_cost += cost[node];
+            total_weight += weight[node];
 
             for (auto &neighbour: _adjacency[node])
             {
-                if (cost[neighbour.where] > neighbour.weight && !in_APM[neighbour.where])
+                if (weight[neighbour.where] > neighbour.weight && !in_APM[neighbour.where])
                 {
                     heap.push({neighbour.where, neighbour.weight});
                     parent[neighbour.where] = node;
-                    cost[neighbour.where] = neighbour.weight;
+                    weight[neighbour.where] = neighbour.weight;
                 }
             }
 
-            if (parent[node] != -1)  edges.push_back({parent[node], node, cost[node]});
+            if (parent[node] != -1)  edges.push_back({parent[node], node, weight[node]});
         }
     }
 
-    return make_pair(total_cost, edges);
+    return make_pair(total_weight, edges);
 }
 
+vector<int> Graph::_Dijkstra(const int& start)
+{
+    priority_queue<Weighted_edge, vector<Weighted_edge>, Weighted_edge> heap;
+    vector<int> dist(_nr_vertex + 1, INT_MAX);
+
+    int node;
+    dist[start] = 0;
+
+    heap.push({start, dist[start]});
+
+    while (!heap.empty())
+    {
+        node = heap.top().where;
+        heap.pop();
+
+        for (auto &neighbour: _adjacency[node])
+        {
+            if (dist[neighbour.where] > dist[node] + neighbour.weight)
+            {
+                dist[neighbour.where] = dist[node] + neighbour.weight;
+                heap.push({neighbour.where, dist[neighbour.where] });
+            }
+        }
+    }
+
+    for (int i = 2; i <= _nr_vertex; ++i)
+    {
+            if (dist[i] == INT_MAX)
+                dist[i] = 0;
+    }
+    return vector<int>(dist.begin() + 2, dist.end());
+}
+
+
 /// Procedures for solving the requirements
-vector<int> Graph::solveBFS(ifstream &in)
+vector<int> Graph::solveBFS(const int& S)
 {
     /// Solving BFS from infoarena
-    int s;
-    in >> s;
-    _readEdges(in);
-    in.close();
-    vector<int> result = _bfs(s);
+    vector<int> result = _bfs(S);
     return vector<int> (result.begin() + 1, result.end());
 }
 
-int Graph::solveDFS(ifstream& in)
+int Graph::solveDFS()
 {
      /// Solving DFS from infoarena
-    _readEdges(in);
-    in.close();
     int result = 0;
     vector<int> components(_nr_vertex + 1, -1);
     stack<int> aux; // not needed in the solving this
@@ -413,11 +481,9 @@ int Graph::solveDFS(ifstream& in)
     return result;
 }
 
-vector<int> Graph::solveTopo(ifstream& in)
+vector<int> Graph::solveTopo()
 {
      /// Solving Sortare Topologica  from infoarena
-    _readEdges(in);
-    in.close();
     vector<int> components(_nr_vertex + 1, -1);
     vector<int> sol;
     stack<int> aux;
@@ -439,11 +505,9 @@ vector<int> Graph::solveTopo(ifstream& in)
     return sol; // vector of vertex's in sorted order
 }
 
-pair<int,vector<vector<int>>> Graph::solveBiconex(ifstream &in)
+pair<int,vector<vector<int>>> Graph::solveBiconex()
 {
     /// Solving Biconex  from infoarena
-     _readEdges(in);
-    in.close();
     vector<vector<int>> sol;
     vector<int> parent;
     vector<int> level;
@@ -468,12 +532,10 @@ pair<int,vector<vector<int>>> Graph::solveBiconex(ifstream &in)
     return pair<int, vector<vector<int>>> (sol.size(), sol); // return (numer of biconex components, sol[i] - vertex's of component)
 }
 
-vector<vector<int>> Graph::criticalConnections(ifstream &in)
+vector<vector<int>> Graph::criticalConnections()
 {
     /// Solving Critical Connections from leetcode
     // With a leveled DFS find critical edges on a conex non-oriented graph
-    _readEdges(in);
-    in.close();
     vector<vector<int>> sol;
     vector<int> parent;
     vector<int> level;
@@ -485,11 +547,9 @@ vector<vector<int>> Graph::criticalConnections(ifstream &in)
     return crt_edg; // crt_edg[i] - crt_edg[i][0] crt_edg[i][1] = critical edge
 }
 
-pair <int, vector<vector<int>>> Graph::solveCTC(ifstream &in)
+pair <int, vector<vector<int>>> Graph::solveCTC()
 {
     /// Solving CTC from infoarena
-     _readEdges(in);
-    in.close();
     vector<int> in_time;
     vector<int> time_return_vert;
     stack<int> connection;
@@ -514,20 +574,16 @@ pair <int, vector<vector<int>>> Graph::solveCTC(ifstream &in)
     return make_pair(sol_nr, sol);
 }
 
-void Graph::solveAPM(ifstream &in)
+tuple<int, int, vector<Edge>> Graph::solveAPM()
 {
-    int n, m;
-    in >> n >> m;
-    _resize(n, m, 0, 1);
-    _readEdges(in);
     pair<int, vector<Edge>> solution = _Prim();
-    ofstream out("apm.out");
-    out << solution.first << "\n" << n - 1 << "\n";
+    return make_tuple(solution.first, solution.second.size(), solution.second);
+}
 
-    for (unsigned int i = 0;  i < solution.second.size(); ++i)
-        out << solution.second[i].from << " " << solution.second[i].where << "\n";
-
-    out.close();
+vector<int> Graph::solveDijkstra()
+{
+    vector<int> solution = _Dijkstra(1);
+    return solution;
 }
 
 void Graph::HavelHakimi(ifstream &in)
@@ -558,9 +614,8 @@ void Graph::HavelHakimi(ifstream &in)
     }
     else
      {
-            _HavelHakimi(n,m,degrees, breakflag);
-
-            if  (breakflag) cout << "Not a graph.\n";
+            bool answer = _HavelHakimi(n,m,degrees);
+            if  (!answer) cout << "Not a graph.\n";
             else // valid graph so display edges
             for (int i = 1; i <= n; ++i)
             {
@@ -574,14 +629,32 @@ void Graph::HavelHakimi(ifstream &in)
      }
 }
 
+vector<bool> Graph::solveDisjunct(int N, int M, ifstream& in)
+{
+    vector<Forest> f = _makeForest(N);
+    int x, y, cod;
+
+    vector<bool> solution;
+    while (M)
+    {
+        M--;
+
+        in >> cod >> x >> y;
+        if (cod == 1)   _unionForest(x, y, f);
+        if (cod == 2)   solution.push_back(_checkForest(x,y,f));
+    }
+
+    return solution;
+}
 
 void infoarenaBFS()
 {
     ifstream in("bfs.in");
-    int n, m;
-    in >> n >> m;
+    int n, m, s;
+    in >> n >> m >> s;
     Graph g(n,m, 1);
-    vector<int> sol = g.solveBFS(in);
+    g.readEdges(in);
+    vector<int> sol = g.solveBFS(s);
 
     ofstream out("bfs.out");
     for (unsigned int i = 0; i < sol.size(); ++i)
@@ -595,7 +668,9 @@ void infoarenaDFS()
     int n, m;
     in >> n >> m;
     Graph g(n,m, 0);
-    int sol = g.solveDFS(in);
+    g.readEdges(in);
+    in.close();
+    int sol = g.solveDFS();
 
     ofstream out("dfs.out");
     out << sol;
@@ -609,7 +684,10 @@ void infoarenaSortareTopologica()
     int n, m;
     in >> n >> m;
     Graph g(n,m,1);
-    vector<int> sol = g.solveTopo(in);
+    g.readEdges(in);
+    in.close();
+
+    vector<int> sol = g.solveTopo();
     for (unsigned int i = 0; i < sol.size(); ++i)
         out << sol[i] << " ";
     out.close();
@@ -622,7 +700,9 @@ void infoarenaBiconex()
     int n, m;
     in >> n >> m;
     Graph g(n,m,0);
-    pair<int, vector<vector<int>>> sol = g.solveBiconex(in);
+    g.readEdges(in);
+    in.close();
+    pair<int, vector<vector<int>>> sol = g.solveBiconex();
     out << sol.first << "\n";
 
     for (int i = 0; i < sol.first; ++i)
@@ -644,7 +724,9 @@ void leetCriticalConnections()
     int n, m;
     in >> n >> m;
     Graph g(n,m,0);
-    vector<vector<int>> crt_edg = g.criticalConnections(in);
+    g.readEdges(in);
+    in.close();
+    vector<vector<int>> crt_edg = g.criticalConnections();
 
     for (unsigned int i = 0; i < crt_edg.size(); ++i)
     {
@@ -662,7 +744,9 @@ void infoarenaCTC()
     int n, m;
     in >> n >> m;
     Graph g(n,m,1);
-    pair<int, vector<vector<int>>> solution = g.solveCTC(in);
+    g.readEdges(in);
+    in.close();
+    pair<int, vector<vector<int>>> solution = g.solveCTC();
     ofstream out("ctc.out");
     out << solution.first << endl;
     for (int i = 0; i < solution.first; ++i)
@@ -682,15 +766,55 @@ void solveHH()
     g.HavelHakimi(in);
 }
 
-void solveAPM()
+void infoarenaAPM()
 {
     ifstream in("apm.in");
-    Graph g;
-    g.solveAPM(in);
+     int n, m;
+    in >> n >> m;
+    Graph g(n,m,0,1);
+    g.readEdges(in);
+    in.close();
+    ofstream out("apm.out");
+    tuple<int,int, vector<Edge>> sol = g.solveAPM();
+    out << get<0>(sol) << "\n" << get<1>(sol) << "\n";
+
+    for (auto &edge:get<2>(sol))
+    {
+        out << edge.from << " " << edge.where << "\n";
+    }
+
+    out.close();
 }
 
+void  infoarenaDijkstra()
+{
+    ifstream in("dijkstra.in");
+    int n, m;
+    in >> n >> m;
+    Graph g(n,m,1,1);
+    g.readEdges(in);
+    in.close();
+    vector<int> solution = g.solveDijkstra();
+    ofstream out("dijkstra.out");
+    for (int i = 0;  i < n - 1 ; ++i)
+        out << solution[i] << " ";
+    out.close();
+}
+
+void infoarenaDisjunct()
+{
+    ifstream in("disjoint.in");
+    int n, m;
+    in >> n >> m;
+    Graph g;
+    vector<bool> solution = g.solveDisjunct(n, m, in);
+    in.close();
+    ofstream out("disjoint.out");
+    for (auto it:solution) it ? out <<"DA\n" : out << "NU\n";
+    out.close();
+}
 int main()
 {
-    solveAPM();
+    infoarenaDisjunct();
     return 0;
 }
