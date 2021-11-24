@@ -13,7 +13,8 @@
 ***
 
 ####  Tema 2
-- [APM](https://github.com/NMDMaria/AF_Lab_Graf/blob/main/mainTema2.cpp#L577) -- sursa de: [100p](https://www.infoarena.ro/job_detail/2804167?action=view-source)
-- [Dijkstra](https://github.com/NMDMaria/AF_Lab_Graf/blob/main/mainTema2.cpp#L424) -- sursa de: [90p](https://www.infoarena.ro/job_detail/2804175?action=view-source)
-- [Păduri de mulțimi disjuncte](https://github.com/NMDMaria/AF_Lab_Graf/blob/main/mainTema2.cpp#L632) -- sursa de: [100p](https://www.infoarena.ro/job_detail/2807605?action=view-source)
+- [APM](https://github.com/NMDMaria/AF_Lab_Graf/blob/main/mainTema2.cpp#L385) -- sursa de: [100p](https://www.infoarena.ro/job_detail/2804167?action=view-source)
+- [Dijkstra](https://github.com/NMDMaria/AF_Lab_Graf/blob/main/mainTema2.cpp#L425) -- sursa de: [90p](https://www.infoarena.ro/job_detail/2804175?action=view-source)
+- [Păduri de mulțimi disjuncte](https://github.com/NMDMaria/AF_Lab_Graf/blob/main/mainTema2.cpp#L665) -- sursa de: [100p](https://www.infoarena.ro/job_detail/2807605?action=view-source)
+- [Algoritmul Bellman-Ford](https://github.com/NMDMaria/AF_Lab_Graf/blob/main/mainTema2.cpp#L453) -- sursa de [100p](https://www.infoarena.ro/job_detail/2807982?action=view-source)
 ***
