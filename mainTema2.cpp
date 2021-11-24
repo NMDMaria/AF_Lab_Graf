@@ -69,7 +69,7 @@ class Graph
     void HavelHakimi(ifstream&);
     tuple<int, int, vector<Edge>> solveAPM();
     vector<int> solveDijkstra();
-    void solveBellmanFord();
+    vector<int> solveBellmanFord();
     vector<bool> solveDisjunct(int, int, ifstream &);
 };
 
@@ -381,6 +381,7 @@ bool Graph::_HavelHakimi(const int& n, const int& nr_d, vector<pair<int,int>>& d
     if (m!=0) return 0; // Couldn't add the number of desired edges so not a valid graph
     return 1;
 }
+
 pair<int, vector<Edge>> Graph::_Prim()
 {
     priority_queue<Weighted_edge, vector<Weighted_edge>, Weighted_edge> heap;
@@ -446,14 +447,47 @@ vector<int> Graph::_Dijkstra(const int& start)
         }
     }
 
-    for (int i = 2; i <= _nr_vertex; ++i)
-    {
-            if (dist[i] == INT_MAX)
-                dist[i] = 0;
-    }
     return vector<int>(dist.begin() + 2, dist.end());
 }
 
+vector<int> Graph:: _BellmanFord(const int& start)
+{
+    vector<int> dist(_nr_vertex + 1, INT_MAX);
+    vector<int> parent(_nr_vertex + 1, -1);
+    queue<int> order;
+    vector<bool> in_q(_nr_vertex + 1, 0);
+    vector<int> count_in_q(_nr_vertex  + 1, 0);
+
+    int node;
+    dist[start] = 0;
+    in_q[start] = 1;
+    count_in_q[start] = 1;
+    order.push(start);
+
+    while(!order.empty())
+    {
+       node = order.front();
+       order.pop();
+       in_q[node] = 0;
+
+        for (auto &neighbour:_adjacency[node])
+        {
+            if (dist[neighbour.where] > dist[node] + neighbour.weight)
+            {
+                dist[neighbour.where] = dist[node] + neighbour.weight;
+                parent[neighbour.where] = node;
+                if (!in_q[neighbour.where])
+                {
+                     if (count_in_q[neighbour.where] > _nr_vertex) return vector<int>(1,-1);
+                    order.push(neighbour.where);
+                    count_in_q[neighbour.where] += 1;
+                }
+            }
+        }
+    }
+
+    return dist;
+}
 
 /// Procedures for solving the requirements
 vector<int> Graph::solveBFS(const int& S)
@@ -582,8 +616,7 @@ tuple<int, int, vector<Edge>> Graph::solveAPM()
 
 vector<int> Graph::solveDijkstra()
 {
-    vector<int> solution = _Dijkstra(1);
-    return solution;
+    return  _Dijkstra(1);
 }
 
 void Graph::HavelHakimi(ifstream &in)
@@ -645,6 +678,14 @@ vector<bool> Graph::solveDisjunct(int N, int M, ifstream& in)
     }
 
     return solution;
+}
+
+vector<int> Graph::solveBellmanFord()
+{
+    vector<int> rez = _BellmanFord(1);
+    if (rez.size() != _nr_vertex + 1)
+        return  vector<int>(1,-1);
+    else return  vector<int>(rez.begin()  + 2 , rez.end());
 }
 
 void infoarenaBFS()
@@ -797,7 +838,10 @@ void  infoarenaDijkstra()
     vector<int> solution = g.solveDijkstra();
     ofstream out("dijkstra.out");
     for (int i = 0;  i < n - 1 ; ++i)
-        out << solution[i] << " ";
+    {
+        if (solution[i] == INT_MAX) out << 0 << " ";
+        else out << solution[i] << " ";
+    }
     out.close();
 }
 
@@ -813,8 +857,29 @@ void infoarenaDisjunct()
     for (auto it:solution) it ? out <<"DA\n" : out << "NU\n";
     out.close();
 }
+
+void infoarenaBellmanFord()
+{
+     ifstream in("bellmanford.in");
+    int n, m;
+    in >> n>> m;
+    Graph g(n,m,1,1);
+    g.readEdges(in);
+    in.close();
+    ofstream out("bellmanford.out");
+    vector<int> sol = g.solveBellmanFord();
+    if (sol.size() != n - 1)
+        out << "Ciclu negativ!\n";
+    else
+    {
+        for (auto &it:sol)
+            out << it << " ";
+    }
+    out.close();
+}
+
 int main()
 {
-    infoarenaDisjunct();
+
     return 0;
 }
