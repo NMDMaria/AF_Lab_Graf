@@ -18,3 +18,10 @@
 - [Păduri de mulțimi disjuncte](https://github.com/NMDMaria/AF_Lab_Graf/blob/main/mainTema2.cpp#L665) -- sursa de: [100p](https://www.infoarena.ro/job_detail/2807605?action=view-source)
 - [Algoritmul Bellman-Ford](https://github.com/NMDMaria/AF_Lab_Graf/blob/main/mainTema2.cpp#L453) -- sursa de [100p](https://www.infoarena.ro/job_detail/2807982?action=view-source)
 ***
+
+####  Tema 3
+- [Maxflow](https://github.com/NMDMaria/AF_Lab_Graf/blob/main/mainTema3.cpp#L572) -- sursa de: [100p](https://infoarena.ro/job_detail/2814071?action=view-source)
+- [Roy-Floyd](https://github.com/NMDMaria/AF_Lab_Graf/blob/main/mainTema3.cpp#L625) -- sursa de: [100p](https://infoarena.ro/job_detail/2814132?action=view-source)
+- [Darb](https://github.com/NMDMaria/AF_Lab_Graf/blob/main/mainTema3.cpp#L657) -- sursa de: [100p](https://infoarena.ro/job_detail/2814203?action=view-source)
+***
+
