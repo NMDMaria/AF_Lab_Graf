@@ -25,3 +25,6 @@
 - [Darb](https://github.com/NMDMaria/AF_Lab_Graf/blob/main/mainTema3.cpp#L657) -- sursa de: [100p](https://infoarena.ro/job_detail/2814203?action=view-source)
 ***
 
+####  Tema 4
+- Ciclu Eulerian -- sursa de: [80p](https://infoarena.ro/job_detail/2820027?action=view-source)
+***
