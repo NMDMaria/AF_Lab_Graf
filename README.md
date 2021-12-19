@@ -26,5 +26,5 @@
 ***
 
 ####  Tema 4
-- Ciclu Eulerian -- sursa de: [80p](https://infoarena.ro/job_detail/2820027?action=view-source)
+- [Ciclu Eulerian](https://github.com/NMDMaria/AF_Lab_Graf/blob/main/mainTema4.cpp#L853) -- sursa de: [80p](https://infoarena.ro/job_detail/2820148?action=view-source)
 ***
