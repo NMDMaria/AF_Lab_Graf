@@ -1,7 +1,7 @@
 ### Graph Class
 ###### Proiect. Laborator Algoritmi Fundamentali. Negrut Maria-Daniela 233 sg. 1
 ***
-###   Versiune finala
+###   [Versiune finala](https://github.com/NMDMaria/AF_Lab_Graf/blob/main/final.cpp)
 Pe lângă modificările clasei Graph (comentarii, funcții pentru folosință ușoară, overload pe operatorii de citire și afișare, restricții pe funcții și metode care funcționează doar pe un anumit tip de graf etc.) am creat o clasă [Infoarena](https://github.com/NMDMaria/AF_Lab_Graf/blob/main/final.cpp#L1134) și un [meniu](https://github.com/NMDMaria/AF_Lab_Graf/blob/main/final.cpp#L1516) pentru apelul fiecărui task din teme - sunt necesare doar fișierele de intrare are problemei dorite. 
 
 Codul de la versiunea finală are în main un demo pentru cum se folosește clasa - declarare graf orientat, citire graf, afișări, schimbări de tip etc.
